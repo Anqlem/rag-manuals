@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manuals Q&amp;A</title>
+<style>
+  :root { --bg:#f6f5f2; --fg:#1d1d1b; --muted:#6b6b66; --line:#dcdad3; --accent:#1f5f8b; --card:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161615; --fg:#ecebe6; --muted:#9a9990; --line:#33322f; --accent:#7fb6dc; --card:#1f1f1d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 320px; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--card); color: var(--fg); font: inherit; }
+  select, button { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--fg); font: inherit; }
+  button { background: var(--accent); color: #fff; border: 0; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .answer { margin-top: 24px; padding: 16px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; white-space: pre-wrap; }
+  .meta { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  details { margin-top: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .src { border-top: 1px solid var(--line); padding: 10px 0; font-size: .9rem; }
+  .src b { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Manuals Q&amp;A</h1>
+  <p class="sub">Answers come only from the ingested manuals, with page citations.</p>
+  <form id="f">
+    <input id="q" type="text" placeholder="e.g. What does fault code E-07 mean?" required>
+    <select id="strategy"><option value="section">section chunks</option><option value="fixed">fixed chunks</option></select>
+    <button id="go">Ask</button>
+  </form>
+  <div id="out"></div>
+</main>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = document.getElementById("go"), out = document.getElementById("out");
+  btn.disabled = true; out.innerHTML = '<p class="meta">Searching…</p>';
+  try {
+    const r = await fetch("/ask", { method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ question: q.value, strategy: strategy.value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(JSON.stringify(d.detail ?? d));
+    const cites = d.citations.map(c => `[${c.id}] ${esc(c.doc)} p.${c.page_start}${c.page_end !== c.page_start ? "–" + c.page_end : ""}`).join(" · ");
+    const t = d.timings, u = d.usage;
+    out.innerHTML = `<div class="answer">${esc(d.answer)}</div>
+      <p class="meta">${cites || "no citations"}<br>
+      ${u.input_tokens + u.output_tokens} tokens${u.cost_usd ? " · $" + u.cost_usd.toFixed(5) : ""} ·
+      ${Object.entries(t).map(([k, v]) => `${k.replace("_ms", "")} ${Math.round(v)} ms`).join(" · ")}</p>
+      <details><summary>Retrieved sources (${d.sources.length})</summary>
+      ${d.sources.map((s, i) => `<div class="src"><b>[${i + 1}] ${esc(s.doc)} p.${s.page_start}</b>
+        ${s.section ? "· " + esc(s.section) : ""}<br>${esc(s.text.slice(0, 400))}…</div>`).join("")}</details>`;
+  } catch (err) {
+    out.innerHTML = `<div class="answer">Error: ${esc(err.message)}</div>`;
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>

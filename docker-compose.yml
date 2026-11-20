@@ -1,0 +1,46 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag
+    # localhost only: the database is never reachable from the network
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag"]
+      interval: 3s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://rag:rag@db:5432/rag
+    # The app has no login. Default is localhost only; set APP_BIND=0.0.0.0 in .env
+    # to open it to your LAN or Tailscale network. Never port-forward it to the internet.
+    ports: ["${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"]
+    volumes:
+      - ./data:/app/data:ro
+      - ./eval:/app/eval
+      - hfcache:/home/app/.cache # downloaded embedding/reranker models survive rebuilds
+    depends_on:
+      db: { condition: service_healthy }
+
+  # Free local LLM. Only starts with: docker compose --profile ollama up -d
+  # Not published on any port: only the app container can reach it.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    restart: unless-stopped
+    volumes: [ollama:/root/.ollama]
+
+volumes:
+  pgdata:
+  hfcache:
+  ollama:

@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+# keep your manuals out of git unless their license allows redistribution
+data/corpus/*.pdf
+eval/results/*_per_question.jsonl
+eval/drafts.jsonl
+build/
