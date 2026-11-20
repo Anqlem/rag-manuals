@@ -38,12 +38,12 @@ jobs:
         run: |
           python -m rag reset
           python -m rag ingest data/sample
-          python -m eval.run_eval retrieval --questions eval/questions.sample.jsonl
-          python -m eval.run_eval generation --questions eval/questions.sample.jsonl
+          python -m eval.run_eval retrieval --questions eval/questions.sample.jsonl --out eval/results/sample
+          python -m eval.run_eval generation --questions eval/questions.sample.jsonl --out eval/results/sample
       - uses: actions/upload-artifact@v4
         with:
           name: eval-smoke-results
-          path: eval/results/*.md
+          path: eval/results/sample/*.md
 
   docker:
     runs-on: ubuntu-latest

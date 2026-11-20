@@ -83,7 +83,7 @@ def run_retrieval(questions: list[dict], strategies, modes) -> None:
             rows.append(row)
             print(f"  {strategy:8s} {mode:14s} hit@5={row['hit@5']:.2f} mrr={row['mrr@10']:.2f}")
 
-    RESULTS.mkdir(exist_ok=True)
+    RESULTS.mkdir(parents=True, exist_ok=True)
     with (RESULTS / "retrieval_per_question.jsonl").open("w") as f:
         for r in per_q:
             f.write(json.dumps(r) + "\n")
@@ -199,7 +199,7 @@ def run_generation(questions: list[dict], strategy: str, mode: str, limit: int |
         records.append(rec)
         print(f"  {q['id']}: {'REFUSED' if a.refused else 'answered'}")
 
-    RESULTS.mkdir(exist_ok=True)
+    RESULTS.mkdir(parents=True, exist_ok=True)
     with (RESULTS / "generation_per_question.jsonl").open("w") as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
@@ -273,6 +273,7 @@ def _generation_report(records, strategy, mode, emb_tokens, s) -> str:
 
 
 def main() -> None:
+    global RESULTS
     p = argparse.ArgumentParser()
     p.add_argument("what", choices=["retrieval", "generation"])
     p.add_argument("--questions", default="eval/questions.jsonl")
@@ -281,7 +282,10 @@ def main() -> None:
     p.add_argument("--strategy", default="section", choices=STRATEGIES)
     p.add_argument("--mode", choices=MODES)
     p.add_argument("--limit", type=int)
+    p.add_argument("--out", default=str(RESULTS), help="folder for the reports (default eval/results)")
     args = p.parse_args()
+
+    RESULTS = Path(args.out)
 
     questions = load_questions(args.questions)
     has_reranker = get_settings().reranker != "none"

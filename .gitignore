@@ -10,3 +10,4 @@ data/corpus/*.pdf
 eval/results/*_per_question.jsonl
 eval/drafts.jsonl
 build/
+eval/results/sample/

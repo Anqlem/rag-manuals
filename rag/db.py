@@ -50,9 +50,24 @@ CREATE INDEX IF NOT EXISTS chunks_embedding_idx
 """
 
 
+_extension_ready = False
+
+
+def _ensure_extension(url: str) -> None:
+    """Create pgvector once per process. register_vector() fails on a fresh
+    database where the extension doesn't exist yet (e.g. a new CI container)."""
+    global _extension_ready
+    if not _extension_ready:
+        with psycopg.connect(url, autocommit=True) as conn:
+            conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        _extension_ready = True
+
+
 @contextmanager
 def connect():
-    conn = psycopg.connect(get_settings().database_url, autocommit=False)
+    url = get_settings().database_url
+    _ensure_extension(url)
+    conn = psycopg.connect(url, autocommit=False)
     try:
         register_vector(conn)
         yield conn
@@ -67,8 +82,6 @@ def connect():
 def init_db() -> None:
     """Create the schema. Refuses to mix embedding models with different dimensions."""
     s = get_settings()
-    with psycopg.connect(s.database_url, autocommit=True) as conn:
-        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
     with connect() as conn:
         conn.execute(SCHEMA.format(dim=s.embedding_dim))
         row = conn.execute("SELECT value FROM meta WHERE key = 'embedding'").fetchone()
