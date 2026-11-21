@@ -6,6 +6,12 @@ A retrieval-augmented generation system that answers field-technician questions 
 
 The point of the repo is the **evaluation**: two chunking strategies × three retrieval modes, scored on a page-labelled question set, plus an LLM-judged check of the answers, and a written analysis of what failed and why.
 
+<p align="center">
+  <img src="docs/screenshot.png" alt="Web UI: a question about a blinking red ERROR LED, answered with a citation to pages 783–784 of the Siemens S7-1200 manual, with the five retrieved source passages listed below" width="640">
+</p>
+
+*A technician-style question answered from the 1,028-page Siemens S7-1200 manual, with a page citation and the retrieved passages. Running on CPU with Llama 3.2 3B, so the answer took about 52 s.*
+
 ## Results at a glance
 
 On the 1,028-page **Siemens S7-1200 system manual** with 34 questions (28 answerable, 6 unanswerable):
@@ -159,7 +165,7 @@ rag/              core package: extract, chunking, embeddings, retrieval, rerank
   static/         one-page web UI
 eval/             questions, metrics, run_eval, labelling + drafting helpers
   results/        the reports quoted above
-docs/             deployment guide
+docs/             deployment guide, UI screenshot
 scripts/          sample-manual generator (used by tests and `make demo`)
 tests/            unit + integration tests (offline, against real Postgres)
 .github/workflows CI: ruff, pytest against pgvector, eval smoke run, Docker build
